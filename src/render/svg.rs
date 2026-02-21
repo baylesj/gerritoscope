@@ -6,8 +6,8 @@
 //! light and dark palettes.
 
 use anyhow::{bail, Result};
+use chrono::Datelike;
 
-// use crate::render::month_label_positions;
 use crate::stats::{Heatmap, Stats};
 
 // ---------------------------------------------------------------------------
