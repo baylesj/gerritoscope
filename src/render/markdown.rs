@@ -27,6 +27,8 @@ const TEMPLATE: &str = r#"## gerritoscope · {{ owner }}
 |:--|--:|
 | Merged (all time) | **{{ total_merged }}** |
 | Last 90 days | **{{ recent_90d }}** |
+| Reviews (52 wk) | **{{ total_reviews }}** |
+| Reviews (90d) | **{{ recent_reviews_90d }}** |
 | Lines added | **+{{ total_ins }}** |
 | Lines removed | **-{{ total_del }}** |
 | Current streak | **{{ current_streak }} wk** |
@@ -104,17 +106,19 @@ pub fn render(owner: &str, hosts: &[(String, String)], stats: &Stats) -> Result<
     };
 
     let ctx = minijinja::context! {
-        owner          => owner,
-        heatmap_block  => heatmap_code_block(&stats.heatmap),
-        total_merged   => fmt_count(stats.total_merged as i64),
-        total_ins      => fmt_count(stats.total_insertions),
-        total_del      => fmt_count(stats.total_deletions),
-        recent_90d     => fmt_count(stats.recent_merged_90d as i64),
-        current_streak => stats.heatmap.current_streak(),
-        longest_streak => stats.heatmap.longest_streak(),
-        top_projects   => projects,
-        generated_at   => generated_at,
-        host_links     => host_links,
+        owner               => owner,
+        heatmap_block       => heatmap_code_block(&stats.heatmap),
+        total_merged        => fmt_count(stats.total_merged as i64),
+        total_ins           => fmt_count(stats.total_insertions),
+        total_del           => fmt_count(stats.total_deletions),
+        recent_90d          => fmt_count(stats.recent_merged_90d as i64),
+        total_reviews       => fmt_count(stats.total_reviews as i64),
+        recent_reviews_90d  => fmt_count(stats.recent_reviews_90d as i64),
+        current_streak      => stats.heatmap.current_streak(),
+        longest_streak      => stats.heatmap.longest_streak(),
+        top_projects        => projects,
+        generated_at        => generated_at,
+        host_links          => host_links,
     };
 
     Ok(env.render_str(TEMPLATE, ctx)?)
@@ -152,6 +156,7 @@ mod tests {
             deletions: del,
             number: 1,
             more_changes: None,
+            messages: vec![],
         }
     }
 
@@ -161,7 +166,7 @@ mod tests {
             merged_cl("openscreen", "2024-06-05", 50, 10),
             merged_cl("openscreen/quic", "2024-06-06", 30, 5),
         ];
-        crate::stats::compute(&changes, ts("2024-06-12"))
+        crate::stats::compute(&changes, &[], ts("2024-06-12"))
     }
 
     fn single_host(url: &str) -> Vec<(String, String)> {
@@ -266,7 +271,7 @@ mod tests {
     #[test]
     fn render_formatted_numbers_use_commas() {
         let changes = vec![merged_cl("repo", "2024-06-10", 12345, 678)];
-        let stats = crate::stats::compute(&changes, ts("2024-06-12"));
+        let stats = crate::stats::compute(&changes, &[], ts("2024-06-12"));
         let md = render("u@example.com", &single_host("https://example.com"), &stats).unwrap();
         assert!(md.contains("12,345"), "insertions not comma-formatted");
     }

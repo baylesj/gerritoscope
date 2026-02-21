@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
 
-use crate::gerrit::{ChangeInfo, ChangeStatus};
+use crate::gerrit::{ChangeInfo, ChangeStatus, ReviewEvent};
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -33,6 +33,10 @@ pub struct Stats {
     pub total_deletions: i64,
     /// Merged CLs submitted in the last 90 days.
     pub recent_merged_90d: usize,
+    /// Total reviews performed within the ~54-week fetch window.
+    pub total_reviews: usize,
+    /// Reviews performed in the last 90 days.
+    pub recent_reviews_90d: usize,
     /// Up to [`TOP_PROJECTS_COUNT`] projects, sorted descending by merged CL count.
     pub top_projects: Vec<ProjectStat>,
 }
@@ -126,7 +130,7 @@ pub struct ProjectStat {
 // Aggregation
 // ---------------------------------------------------------------------------
 
-/// Compute [`Stats`] from a raw slice of changes.
+/// Compute [`Stats`] from a raw slice of changes and review events.
 ///
 /// `now` is the reference instant for the heatmap boundary and the 90-day
 /// "recent" window.  Pass [`chrono::Utc::now()`] in production; a fixed
@@ -135,7 +139,7 @@ pub struct ProjectStat {
 /// Non-merged changes (status `NEW` or `ABANDONED`) are silently ignored.
 /// Merged changes whose `submitted` timestamp falls outside the heatmap
 /// window still contribute to the lifetime totals.
-pub fn compute(changes: &[ChangeInfo], now: DateTime<Utc>) -> Stats {
+pub fn compute(changes: &[ChangeInfo], reviews: &[ReviewEvent], now: DateTime<Utc>) -> Stats {
     let today = now.date_naive();
     let current_week_start = iso_week_start(today);
 
@@ -159,6 +163,8 @@ pub fn compute(changes: &[ChangeInfo], now: DateTime<Utc>) -> Stats {
     let mut total_insertions = 0i64;
     let mut total_deletions = 0i64;
     let mut recent_merged_90d = 0usize;
+    let mut total_reviews = 0usize;
+    let mut recent_reviews_90d = 0usize;
     let mut project_map: HashMap<String, ProjectStat> = HashMap::new();
 
     for change in changes {
@@ -211,6 +217,27 @@ pub fn compute(changes: &[ChangeInfo], now: DateTime<Utc>) -> Stats {
         }
     }
 
+    // Aggregate review events into the heatmap and review counters.
+    for event in reviews {
+        total_reviews += 1;
+
+        if event.timestamp > cutoff_90d {
+            recent_reviews_90d += 1;
+        }
+
+        let ws = iso_week_start(event.timestamp.date_naive());
+        if ws >= heatmap_start && ws <= current_week_start {
+            let idx = (ws - heatmap_start).num_weeks() as usize;
+            if idx < HEATMAP_WEEKS {
+                buckets[idx].count += 1;
+                *buckets[idx]
+                    .family_counts
+                    .entry(project_family(&event.project).to_owned())
+                    .or_insert(0) += 1;
+            }
+        }
+    }
+
     let max_count = buckets.iter().map(|b| b.count).max().unwrap_or(0);
 
     let mut top_projects: Vec<ProjectStat> = project_map.into_values().collect();
@@ -226,6 +253,8 @@ pub fn compute(changes: &[ChangeInfo], now: DateTime<Utc>) -> Stats {
         total_insertions,
         total_deletions,
         recent_merged_90d,
+        total_reviews,
+        recent_reviews_90d,
         top_projects,
     }
 }
@@ -312,6 +341,7 @@ mod tests {
             deletions: del,
             number: 1,
             more_changes: None,
+            messages: vec![],
         }
     }
 
@@ -321,7 +351,7 @@ mod tests {
 
     #[test]
     fn empty_input_gives_zero_totals() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         assert_eq!(stats.total_merged, 0);
         assert_eq!(stats.total_insertions, 0);
         assert_eq!(stats.total_deletions, 0);
@@ -331,13 +361,13 @@ mod tests {
 
     #[test]
     fn heatmap_has_correct_week_count() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         assert_eq!(stats.heatmap.weeks.len(), HEATMAP_WEEKS);
     }
 
     #[test]
     fn heatmap_weeks_start_on_monday() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         for bucket in &stats.heatmap.weeks {
             assert_eq!(
                 bucket.week_start.weekday(),
@@ -350,7 +380,7 @@ mod tests {
 
     #[test]
     fn heatmap_weeks_are_consecutive_and_span_52_weeks() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         let weeks = &stats.heatmap.weeks;
         for i in 1..weeks.len() {
             assert_eq!(
@@ -369,7 +399,7 @@ mod tests {
     #[test]
     fn last_bucket_contains_current_week() {
         let now = ts("2024-06-12"); // Wednesday
-        let stats = compute(&[], now);
+        let stats = compute(&[], &[], now);
         let last = stats.heatmap.weeks.last().unwrap();
         // 2024-06-12 is in the week starting 2024-06-10 (Monday).
         assert_eq!(last.week_start.to_string(), "2024-06-10");
@@ -383,7 +413,7 @@ mod tests {
     fn cl_lands_in_correct_bucket() {
         let now = ts("2024-06-12"); // Wednesday; week starts 2024-06-10
         let changes = vec![merged_cl("chromium/src", "2024-06-10", 10, 5)];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
 
         let last = stats.heatmap.weeks.last().unwrap();
         assert_eq!(last.count, 1);
@@ -396,7 +426,7 @@ mod tests {
         let now = ts("2024-06-12");
         // ~56 weeks before now — well outside the 52-week window.
         let changes = vec![merged_cl("chromium/src", "2023-05-01", 10, 5)];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
 
         assert_eq!(stats.total_merged, 1, "should count in lifetime totals");
         assert_eq!(stats.heatmap.max_count, 0, "should not appear in heatmap");
@@ -411,7 +441,7 @@ mod tests {
             merged_cl("repo", "2024-06-11", 2, 4),
             merged_cl("repo", "2024-06-12", 1, 1),
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         let last = stats.heatmap.weeks.last().unwrap();
         assert_eq!(last.count, 3);
         assert_eq!(last.lines_changed, 3 + 1 + 2 + 4 + 1 + 1);
@@ -428,7 +458,7 @@ mod tests {
         open.status = ChangeStatus::New;
         open.submitted = None;
 
-        let stats = compute(&[abandoned, open], now);
+        let stats = compute(&[abandoned, open], &[], now);
         assert_eq!(stats.total_merged, 0);
         assert_eq!(stats.heatmap.max_count, 0);
     }
@@ -444,7 +474,7 @@ mod tests {
             merged_cl("a", "2024-06-10", 10, 2),
             merged_cl("b", "2020-01-01", 5, 3), // older than heatmap window
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         assert_eq!(stats.total_merged, 2);
         assert_eq!(stats.total_insertions, 15);
         assert_eq!(stats.total_deletions, 5);
@@ -458,7 +488,7 @@ mod tests {
             merged_cl("r", "2024-04-01", 1, 0), // 72 days before now → inside
             merged_cl("r", "2024-01-01", 1, 0), // ~163 days before now → outside
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         assert_eq!(stats.recent_merged_90d, 2);
     }
 
@@ -475,7 +505,7 @@ mod tests {
             merged_cl("beta", "2024-06-04", 1, 0),
             merged_cl("beta", "2024-06-05", 1, 0),
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         assert_eq!(stats.top_projects[0].name, "beta");
         assert_eq!(stats.top_projects[0].merged, 3);
         assert_eq!(stats.top_projects[1].name, "alpha");
@@ -489,7 +519,7 @@ mod tests {
         let changes: Vec<ChangeInfo> = (0..TOP_PROJECTS_COUNT + 3)
             .map(|i| merged_cl(&format!("proj-{i}"), "2024-06-10", 1, 0))
             .collect();
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         assert!(stats.top_projects.len() <= TOP_PROJECTS_COUNT);
     }
 
@@ -556,7 +586,7 @@ mod tests {
 
     #[test]
     fn current_streak_at_tail() {
-        let mut heatmap = compute(&[], ts("2024-06-12")).heatmap;
+        let mut heatmap = compute(&[], &[], ts("2024-06-12")).heatmap;
         let n = heatmap.weeks.len();
         heatmap.weeks[n - 1].count = 3;
         heatmap.weeks[n - 2].count = 2;
@@ -566,7 +596,7 @@ mod tests {
 
     #[test]
     fn current_streak_zero_when_latest_week_empty() {
-        let mut heatmap = compute(&[], ts("2024-06-12")).heatmap;
+        let mut heatmap = compute(&[], &[], ts("2024-06-12")).heatmap;
         let n = heatmap.weeks.len();
         heatmap.weeks[n - 2].count = 5;
         // Last bucket is zero — streak is broken.
@@ -575,7 +605,7 @@ mod tests {
 
     #[test]
     fn longest_streak_finds_peak_run() {
-        let mut heatmap = compute(&[], ts("2024-06-12")).heatmap;
+        let mut heatmap = compute(&[], &[], ts("2024-06-12")).heatmap;
         // Pattern: 0 | 1 1 1 | 0 | 1 1 | 0 0 0 0 ...
         heatmap.weeks[0].count = 0;
         heatmap.weeks[1].count = 1;
@@ -589,14 +619,14 @@ mod tests {
 
     #[test]
     fn streak_all_empty_is_zero() {
-        let heatmap = compute(&[], ts("2024-06-12")).heatmap;
+        let heatmap = compute(&[], &[], ts("2024-06-12")).heatmap;
         assert_eq!(heatmap.current_streak(), 0);
         assert_eq!(heatmap.longest_streak(), 0);
     }
 
     #[test]
     fn streak_all_full() {
-        let mut heatmap = compute(&[], ts("2024-06-12")).heatmap;
+        let mut heatmap = compute(&[], &[], ts("2024-06-12")).heatmap;
         for b in &mut heatmap.weeks {
             b.count = 1;
         }
@@ -669,7 +699,7 @@ mod tests {
             merged_cl("openscreen/quic", "2024-06-10", 1, 0),
             merged_cl("chromium/src", "2024-06-10", 1, 0),
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         let last = stats.heatmap.weeks.last().unwrap();
 
         assert_eq!(last.count, 3);
@@ -683,7 +713,7 @@ mod tests {
 
     #[test]
     fn family_counts_empty_bucket_has_no_entries() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         assert!(stats.heatmap.weeks.last().unwrap().family_counts.is_empty());
     }
 
@@ -695,7 +725,7 @@ mod tests {
             merged_cl("openscreen/quic", "2024-06-10", 1, 0),
             merged_cl("chromium/src", "2024-06-10", 1, 0),
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         // openscreen (2 CLs) beats chromium (1 CL).
         assert_eq!(
             stats.heatmap.weeks.last().unwrap().dominant_family(),
@@ -705,7 +735,7 @@ mod tests {
 
     #[test]
     fn dominant_family_none_for_empty_bucket() {
-        let stats = compute(&[], ts("2024-06-12"));
+        let stats = compute(&[], &[], ts("2024-06-12"));
         assert_eq!(stats.heatmap.weeks.last().unwrap().dominant_family(), None);
     }
 
@@ -717,7 +747,7 @@ mod tests {
             merged_cl("openscreen", "2024-06-10", 1, 0),
             merged_cl("openscreen/quic", "2024-06-10", 1, 0),
         ];
-        let stats = compute(&changes, now);
+        let stats = compute(&changes, &[], now);
         let names: Vec<&str> = stats.top_projects.iter().map(|p| p.name.as_str()).collect();
         // Both full repo names must be preserved — family grouping must not
         // rename or merge entries in the top_projects list.

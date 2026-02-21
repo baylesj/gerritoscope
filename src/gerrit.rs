@@ -94,6 +94,55 @@ impl GerritClient {
         Ok(all)
     }
 
+    /// Fetch all changes that `query.reviewer` reviewed (but didn't author),
+    /// returning one [`ReviewEvent`] per change (the earliest message from the
+    /// reviewer, or `change.updated` as fallback).
+    pub async fn fetch_review_events(&self, query: &ReviewerQuery) -> Result<Vec<ReviewEvent>> {
+        let mut all: Vec<ReviewEvent> = Vec::new();
+        let mut start = 0usize;
+
+        loop {
+            let page = self
+                .fetch_review_page(query, start, DEFAULT_PAGE_SIZE)
+                .await?;
+
+            let more = page.last().and_then(|c| c.more_changes).unwrap_or(false);
+            let n = page.len();
+
+            for change in &page {
+                let ts = if query.reviewer.contains('@') {
+                    // Try to find the earliest message authored by the reviewer.
+                    let earliest = change
+                        .messages
+                        .iter()
+                        .filter(|m| {
+                            m.author
+                                .as_ref()
+                                .and_then(|a| a.email.as_deref())
+                                == Some(query.reviewer.as_str())
+                        })
+                        .map(|m| m.date)
+                        .min();
+                    earliest.unwrap_or(change.updated)
+                } else {
+                    change.updated
+                };
+
+                all.push(ReviewEvent {
+                    timestamp: ts,
+                    project: change.project.clone(),
+                });
+            }
+
+            if !more || n == 0 {
+                break;
+            }
+            start += n;
+        }
+
+        Ok(all)
+    }
+
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
@@ -132,6 +181,41 @@ impl GerritClient {
 
         serde_json::from_str(json)
             .with_context(|| format!("deserialising /changes/ page (start={start})"))
+    }
+
+    async fn fetch_review_page(
+        &self,
+        query: &ReviewerQuery,
+        start: usize,
+        limit: usize,
+    ) -> Result<Vec<ChangeInfo>> {
+        let url = format!("{}/changes/", self.base_url);
+        let q = query.to_query_string();
+
+        let mut req = self.http.get(&url).query(&[
+            ("q", q.as_str()),
+            ("n", &limit.to_string()),
+            ("start", &start.to_string()),
+            ("o", "MESSAGES"),
+        ]);
+
+        if let Some((user, pass)) = &self.auth {
+            req = req.basic_auth(user, Some(pass));
+        }
+
+        let response = req.send().await.with_context(|| format!("GET {url}"))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            bail!("Gerrit returned HTTP {status} for {url}: {body}");
+        }
+
+        let text = response.text().await?;
+        let json = strip_xssi(&text)?;
+
+        serde_json::from_str(json)
+            .with_context(|| format!("deserialising /changes/ (reviewer) page (start={start})"))
     }
 }
 
@@ -210,6 +294,45 @@ impl ChangeQuery {
     }
 }
 
+/// A Gerrit reviewer search query: finds CLs the user reviewed but didn't author.
+#[derive(Debug, Clone)]
+pub struct ReviewerQuery {
+    /// Account identifier: email address or username.
+    pub reviewer: String,
+    /// If set, only return changes updated on or after this date.
+    pub after: Option<chrono::NaiveDate>,
+}
+
+impl ReviewerQuery {
+    /// Create a reviewer query for `reviewer`.
+    pub fn new(reviewer: impl Into<String>) -> Self {
+        Self {
+            reviewer: reviewer.into(),
+            after: None,
+        }
+    }
+
+    /// Only return changes updated on or after `date`.
+    pub fn with_after(mut self, date: chrono::NaiveDate) -> Self {
+        self.after = Some(date);
+        self
+    }
+
+    /// Encode as a Gerrit query string.
+    fn to_query_string(&self) -> String {
+        let mut parts = vec![
+            format!("reviewer:{}", self.reviewer),
+            format!("-owner:{}", self.reviewer),
+        ];
+
+        if let Some(date) = self.after {
+            parts.push(format!("after:{}", date.format("%Y-%m-%d")));
+        }
+
+        parts.join(" ")
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Serde types
 // ---------------------------------------------------------------------------
@@ -232,6 +355,28 @@ impl ChangeStatus {
             ChangeStatus::Abandoned => "abandoned",
         }
     }
+}
+
+/// Author information within a change message.
+#[derive(Debug, Deserialize)]
+pub struct AccountInfo {
+    pub email: Option<String>,
+}
+
+/// A single review message posted on a change.
+#[derive(Debug, Deserialize)]
+pub struct ChangeMessage {
+    pub author: Option<AccountInfo>,
+    /// Timestamp of the message.
+    #[serde(deserialize_with = "de_gerrit_ts")]
+    pub date: DateTime<Utc>,
+}
+
+/// A single review activity event: the first time a user reviewed a change.
+#[derive(Debug)]
+pub struct ReviewEvent {
+    pub timestamp: DateTime<Utc>,
+    pub project: String,
 }
 
 /// A single entry from the Gerrit
@@ -275,6 +420,9 @@ pub struct ChangeInfo {
     /// exist.  Consumed by the pagination loop; not meaningful to callers.
     #[serde(rename = "_more_changes", default)]
     pub(crate) more_changes: Option<bool>,
+    /// Review messages — only populated when the `MESSAGES` option is requested.
+    #[serde(default)]
+    pub messages: Vec<ChangeMessage>,
 }
 
 // ---------------------------------------------------------------------------

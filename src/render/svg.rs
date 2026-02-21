@@ -277,7 +277,7 @@ pub fn render(
     let title_text = title_text(owner, hosts);
     let stats_line = stats_line(stats, h);
 
-    let peak_text = format!("peak: {} CLs/wk", h.max_count);
+    let peak_text = format!("peak: {}/wk", h.max_count);
 
     let svg = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{CARD_H}" viewBox="0 0 {CARD_W} {CARD_H}" role="img" aria-label="gerritoscope heatmap for {owner}">
@@ -319,9 +319,10 @@ fn title_text(owner: &str, hosts: &[(String, String)]) -> String {
 fn stats_line(stats: &Stats, h: &Heatmap) -> String {
     use crate::render::fmt_count;
     format!(
-        "{} merged · {}/90d · +{}/−{} · {}wk streak",
+        "{} merged · {}/90d · {} reviewed · +{}/−{} · {}wk streak",
         fmt_count(stats.total_merged as i64),
         fmt_count(stats.recent_merged_90d as i64),
+        fmt_count(stats.recent_reviews_90d as i64),
         fmt_count(stats.total_insertions),
         fmt_count(stats.total_deletions),
         h.current_streak(),
@@ -503,10 +504,9 @@ mod tests {
     use crate::gerrit::{ChangeInfo, ChangeStatus};
     use crate::stats;
     use chrono::{NaiveDate, TimeZone, Utc};
-    use std::collections::HashMap;
 
     fn empty_stats() -> Stats {
-        stats::compute(&[], Utc.with_ymd_and_hms(2024, 6, 12, 12, 0, 0).unwrap())
+        stats::compute(&[], &[], Utc.with_ymd_and_hms(2024, 6, 12, 12, 0, 0).unwrap())
     }
 
     fn hosts_one() -> Vec<(String, String)> {
@@ -600,10 +600,11 @@ mod tests {
                 deletions: 0,
                 number: 1,
                 more_changes: None,
+                messages: vec![],
             }
         }
         let changes = vec![cl("alpha", "2024-06-10"), cl("beta", "2024-06-03")];
-        let s = stats::compute(&changes, now);
+        let s = stats::compute(&changes, &[], now);
         let opts = SvgOptions {
             theme: "github",
             multi_color: true,
@@ -646,7 +647,7 @@ mod tests {
     #[test]
     fn tooltip_in_rect_title() {
         let now = Utc.with_ymd_and_hms(2024, 6, 12, 12, 0, 0).unwrap();
-        let stats = stats::compute(&[], now);
+        let stats = stats::compute(&[], &[], now);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         assert!(
             svg.contains("<title>"),

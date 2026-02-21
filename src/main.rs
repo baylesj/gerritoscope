@@ -10,7 +10,7 @@ use chrono::NaiveDate;
 use clap::Parser;
 use tokio::task::JoinSet;
 
-use gerrit::{ChangeInfo, ChangeQuery, ChangeStatus, GerritClient};
+use gerrit::{ChangeInfo, ChangeQuery, ChangeStatus, GerritClient, ReviewEvent, ReviewerQuery};
 use render::{fmt_count, heatmap_body, heatmap_header};
 use stats::{Heatmap, Stats};
 
@@ -62,6 +62,10 @@ struct Args {
     /// Colour each heatmap cell by the dominant Gerrit host/project family.
     #[arg(long)]
     svg_multi_color: bool,
+
+    /// Skip fetching code review activity (faster, but omits review stats).
+    #[arg(long)]
+    skip_reviews: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -92,7 +96,18 @@ async fn main() -> Result<()> {
         changes.sort_by_key(|c| c.submitted.unwrap_or(c.updated));
     }
 
-    let stats = stats::compute(&changes, chrono::Utc::now());
+    let heatmap_after = (chrono::Utc::now() - chrono::Duration::weeks(54))
+        .date_naive();
+
+    let reviews: Vec<ReviewEvent> = if args.skip_reviews {
+        vec![]
+    } else {
+        eprintln!("fetching reviews for {} …", args.owner);
+        fetch_all_reviews(&resolved, &args, heatmap_after, prefix_projects).await?
+    };
+    eprintln!("  {} review events fetched total", reviews.len());
+
+    let stats = stats::compute(&changes, &reviews, chrono::Utc::now());
     print_report(&args.owner, &resolved, &stats);
 
     if let Some(ref path) = args.output_md {
@@ -163,6 +178,50 @@ async fn fetch_all(
     Ok(all)
 }
 
+/// Fetch review events from all hosts concurrently.
+///
+/// Mirrors `fetch_all` but uses `ReviewerQuery` and `fetch_review_events`.
+async fn fetch_all_reviews(
+    resolved: &[(String, String)],
+    args: &Args,
+    after: chrono::NaiveDate,
+    prefix_projects: bool,
+) -> Result<Vec<ReviewEvent>> {
+    let mut set: JoinSet<Result<(String, Vec<ReviewEvent>)>> = JoinSet::new();
+
+    for (alias, url) in resolved {
+        let alias = alias.clone();
+        let url = url.clone();
+        let reviewer = args.owner.clone();
+        let username = args.username.clone();
+        let password = args.password.clone();
+
+        set.spawn(async move {
+            let client = GerritClient::new(&url)?;
+            let client = match (&username, &password) {
+                (Some(u), Some(p)) => client.with_auth(u, p),
+                _ => client,
+            };
+            let query = ReviewerQuery::new(&reviewer).with_after(after);
+            let events = client.fetch_review_events(&query).await?;
+            Ok((alias, events))
+        });
+    }
+
+    let mut all = Vec::new();
+    while let Some(result) = set.join_next().await {
+        let (alias, mut events) = result.context("task panicked")??;
+        eprintln!("  {} review events from {alias}", events.len());
+        if prefix_projects {
+            for e in &mut events {
+                e.project = format!("{alias}::{}", e.project);
+            }
+        }
+        all.extend(events);
+    }
+    Ok(all)
+}
+
 fn build_query(args: &Args) -> Result<ChangeQuery> {
     let mut q = ChangeQuery::new(&args.owner).with_status(ChangeStatus::Merged);
     if let Some(ref s) = args.after {
@@ -197,22 +256,24 @@ fn print_report(owner: &str, hosts: &[(String, String)], s: &Stats) {
 
     println!();
     println!(
-        "  Merged CLs     {:>7}  (all time)",
-        fmt_count(s.total_merged as i64)
+        "  Merged CLs     {:>7} all time   ·  {:>7} last 90d",
+        fmt_count(s.total_merged as i64),
+        fmt_count(s.recent_merged_90d as i64),
     );
     println!(
-        "  Last 90 days   {:>7}",
-        fmt_count(s.recent_merged_90d as i64)
+        "  Reviews done   {:>7} last year  ·  {:>7} last 90d",
+        fmt_count(s.total_reviews as i64),
+        fmt_count(s.recent_reviews_90d as i64),
     );
     println!(
-        "  Lines changed  +{} / -{}",
-        fmt_count(s.total_insertions),
-        fmt_count(s.total_deletions),
-    );
-    println!(
-        "  Streak         current {} wk  ·  longest {} wk",
+        "  Streak             current {} wks ·   longest {} wks",
         s.heatmap.current_streak(),
         s.heatmap.longest_streak(),
+    );
+    println!(
+        "  Lines changed      +{} / -{}",
+        fmt_count(s.total_insertions),
+        fmt_count(s.total_deletions),
     );
 
     if !s.top_projects.is_empty() {
@@ -236,7 +297,7 @@ fn print_heatmap(h: &Heatmap) {
     println!();
     println!("  {}", heatmap_header(h));
     println!("  [{}]", heatmap_body(h));
-    println!("  peak: {} CLs/week", h.max_count);
+    println!("  peak: {} contributions/week", h.max_count);
 }
 
 // ---------------------------------------------------------------------------

@@ -68,7 +68,7 @@ pub fn heatmap_body(h: &Heatmap) -> String {
 /// ```
 pub fn heatmap_code_block(h: &Heatmap) -> String {
     format!(
-        "```\n{}\n[{}]\npeak: {} CLs/wk\n```",
+        "```\n{}\n[{}]\npeak: {}/wk\n```",
         heatmap_header(h),
         heatmap_body(h),
         h.max_count,
