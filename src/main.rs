@@ -49,6 +49,19 @@ struct Args {
     /// Write a markdown report to this file.
     #[arg(long)]
     output_md: Option<PathBuf>,
+
+    /// Write an SVG heatmap card to this file.
+    #[arg(long)]
+    output_svg: Option<PathBuf>,
+
+    /// Theme for the SVG card (github, github-light, github-dark, solarized-light,
+    /// solarized-dark, gruvbox-dark, gruvbox-light, tokyo-night, dracula, catppuccin-mocha).
+    #[arg(long, default_value = "github")]
+    svg_theme: String,
+
+    /// Colour each heatmap cell by the dominant Gerrit host/project family.
+    #[arg(long)]
+    svg_multi_color: bool,
 }
 
 // ---------------------------------------------------------------------------
