@@ -1,4 +1,4 @@
-gerritoscope[package]
+[package]
 name = "gerritoscope"
 version = "0.1.0"
 edition = "2021"
