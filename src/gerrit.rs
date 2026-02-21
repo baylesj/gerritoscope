@@ -155,7 +155,7 @@ fn strip_xssi(s: &str) -> Result<&str> {
 /// A Gerrit change search query.
 ///
 /// ```
-/// use gerritoscopy::gerrit::{ChangeQuery, ChangeStatus};
+/// use gerritoscope::gerrit::{ChangeQuery, ChangeStatus};
 ///
 /// let q = ChangeQuery::new("alice@example.com")
 ///     .with_status(ChangeStatus::Merged)

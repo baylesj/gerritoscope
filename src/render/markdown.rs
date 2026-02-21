@@ -19,7 +19,7 @@ use super::{fmt_count, heatmap_code_block};
 ///   - Still readable when `cat`'d raw: block glyphs in a plain code fence,
 ///     pipe tables degrade gracefully in a fixed-width terminal
 ///   - No external template files — single binary, no asset path hassles
-const TEMPLATE: &str = r#"## gerritoscopy · {{ owner }}
+const TEMPLATE: &str = r#"## gerritoscope · {{ owner }}
 
 {{ heatmap_block }}
 

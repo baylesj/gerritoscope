@@ -5,7 +5,7 @@ RUN cargo build --release
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /build/target/release/gerritoscopy /usr/local/bin/gerritoscopy
+COPY --from=builder /build/target/release/gerritoscope /usr/local/bin/gerritoscope
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

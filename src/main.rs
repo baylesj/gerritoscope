@@ -20,7 +20,7 @@ use stats::{Heatmap, Stats};
 
 #[derive(Parser)]
 #[command(
-    name = "gerritoscopy",
+    name = "gerritoscope",
     about = "Fetch Gerrit contribution stats and render a profile heatmap"
 )]
 struct Args {
@@ -189,7 +189,7 @@ fn print_report(owner: &str, hosts: &[(String, String)], s: &Stats) {
 
     println!();
     println!("┌{bar}┐");
-    println!("│  gerritoscopy · {owner:<width$}│", width = width - 17);
+    println!("│  gerritoscope · {owner:<width$}│", width = width - 17);
     println!("│  hosts: {host_label:<width$}│", width = width - 9);
     println!("└{bar}┘");
 

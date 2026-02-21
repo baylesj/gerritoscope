@@ -261,7 +261,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gerritoscopy"
+name = "gerritoscope"
 version = "0.1.0"
 dependencies = [
  "anyhow",

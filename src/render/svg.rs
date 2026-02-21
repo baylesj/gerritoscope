@@ -1,7 +1,7 @@
-//! SVG card renderer for gerritoscopy.
+//! SVG card renderer for gerritoscope.
 //!
 //! Produces a self-contained SVG that can be embedded in a GitHub profile
-//! README as `<img src="gerritoscopy.svg">`.  The default `github` theme
+//! README as `<img src="gerritoscope.svg">`.  The default `github` theme
 //! uses a CSS `prefers-color-scheme` media query to auto-switch between
 //! light and dark palettes.
 
@@ -280,8 +280,8 @@ pub fn render(
     let peak_text = format!("peak: {} CLs/wk", h.max_count);
 
     let svg = format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{CARD_H}" viewBox="0 0 {CARD_W} {CARD_H}" role="img" aria-label="gerritoscopy heatmap for {owner}">
-<title>gerritoscopy · {owner}</title>
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{CARD_H}" viewBox="0 0 {CARD_W} {CARD_H}" role="img" aria-label="gerritoscope heatmap for {owner}">
+<title>gerritoscope · {owner}</title>
 <style>
 {css}
 </style>
@@ -305,14 +305,14 @@ pub fn render(
 
 fn title_text(owner: &str, hosts: &[(String, String)]) -> String {
     if hosts.len() == 1 {
-        format!("gerritoscopy · {owner}")
+        format!("gerritoscope · {owner}")
     } else {
         let host_list: String = hosts
             .iter()
             .map(|(a, _)| a.as_str())
             .collect::<Vec<_>>()
             .join(", ");
-        format!("gerritoscopy · {owner} [{host_list}]")
+        format!("gerritoscope · {owner} [{host_list}]")
     }
 }
 

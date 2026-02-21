@@ -25,4 +25,4 @@ args=(--owner "${INPUT_OWNER}")
 [[ -n "$svg_theme"     ]] && args+=(--svg-theme       "$svg_theme")
 [[ "$svg_multi_color" == "true" ]] && args+=(--svg-multi-color)
 
-exec /usr/local/bin/gerritoscopy "${args[@]}"
+exec /usr/local/bin/gerritoscope "${args[@]}"

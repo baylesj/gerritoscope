@@ -1,4 +1,4 @@
-name: gerritoscopy
+name: gerritoscope
 description: Fetch Gerrit contribution data and render an SVG heatmap card for your GitHub profile README.
 author: baylesj
 
@@ -39,7 +39,7 @@ inputs:
 
 runs:
   using: docker
-  image: docker://ghcr.io/baylesj/gerritoscopy:latest
+  image: docker://ghcr.io/baylesj/gerritoscope:latest
 
 branding:
   icon: activity

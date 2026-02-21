@@ -1,12 +1,12 @@
-[package]
-name = "gerritoscopy"
+gerritoscope[package]
+name = "gerritoscope"
 version = "0.1.0"
 edition = "2021"
 description = "Fetch Gerrit contribution data and render a GitHub-profile heatmap card"
 license = "MIT"
 
 [[bin]]
-name = "gerritoscopy"
+name = "gerritoscope"
 path = "src/main.rs"
 
 [dependencies]

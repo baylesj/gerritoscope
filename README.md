@@ -139,7 +139,7 @@ Multiple hosts: `hosts: "chromium,go"` or repeat entries as needed.
 Install from source:
 
 ```bash
-cargo install --git https://github.com/baylesj/gerritoscopy
+cargo install --git https://github.com/baylesj/gerritoscope
 ```
 
 Example invocations:
