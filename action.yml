@@ -1,0 +1,46 @@
+name: gerritoscopy
+description: Fetch Gerrit contribution data and render an SVG heatmap card for your GitHub profile README.
+author: baylesj
+
+inputs:
+  owner:
+    description: Account to query — email address, username, or `self`.
+    required: true
+  hosts:
+    description: >
+      Gerrit host(s) to query. Accepts short aliases (chromium, go, android, fuchsia,
+      skia, gerrit, wikimedia, qt, libreoffice, onap), full URLs, or comma-separated
+      lists. Defaults to "chromium".
+    default: chromium
+  after:
+    description: Only include changes submitted on or after this date (YYYY-MM-DD).
+    required: false
+  username:
+    description: HTTP Basic Auth username (for private Gerrit instances).
+    required: false
+  password:
+    description: Gerrit HTTP password (paired with username).
+    required: false
+  output-svg:
+    description: Write an SVG heatmap card to this file path.
+    default: gerrit-heatmap.svg
+  output-md:
+    description: Write a markdown report to this file path.
+    required: false
+  svg-theme:
+    description: >
+      Theme for the SVG card. One of: github, github-light, github-dark,
+      solarized-light, solarized-dark, gruvbox-dark, gruvbox-light,
+      tokyo-night, dracula, catppuccin-mocha.
+    default: github
+  svg-multi-color:
+    description: Colour each heatmap cell by the dominant Gerrit host/project family.
+    default: "false"
+
+runs:
+  using: docker
+  image: docker://ghcr.io/baylesj/gerritoscopy:latest
+
+branding:
+  icon: activity
+  color: blue
