@@ -35,7 +35,10 @@ fn main() -> anyhow::Result<()> {
     ];
 
     for theme in themes {
-        let opts = SvgOptions { theme, multi_color: false };
+        let opts = SvgOptions {
+            theme,
+            multi_color: false,
+        };
         let svg = render("demo@example.com", &hosts, &stats, &opts)?;
         let path = format!("docs/themes/{theme}.svg");
         std::fs::write(&path, &svg)?;
@@ -95,7 +98,10 @@ fn sample_stats() -> Stats {
     let max_count = buckets.iter().map(|b| b.count).max().unwrap_or(0);
 
     Stats {
-        heatmap: Heatmap { weeks: buckets, max_count },
+        heatmap: Heatmap {
+            weeks: buckets,
+            max_count,
+        },
         total_merged: 142,
         total_insertions: 18_432,
         total_deletions: 4_217,
