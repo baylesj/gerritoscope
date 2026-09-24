@@ -13,6 +13,7 @@ output_svg="$(printenv 'INPUT_OUTPUT-SVG' || true)"
 output_md="$(printenv 'INPUT_OUTPUT-MD' || true)"
 svg_theme="$(printenv 'INPUT_SVG-THEME' || true)"
 svg_multi_color="$(printenv 'INPUT_SVG-MULTI-COLOR' || true)"
+rollup="$(printenv INPUT_ROLLUP || true)"
 
 args=(--owner "${INPUT_OWNER}")
 
@@ -24,5 +25,6 @@ args=(--owner "${INPUT_OWNER}")
 [[ -n "$output_md"     ]] && args+=(--output-md       "$output_md")
 [[ -n "$svg_theme"     ]] && args+=(--svg-theme       "$svg_theme")
 [[ "$svg_multi_color" == "true" ]] && args+=(--svg-multi-color)
+[[ -n "$rollup"        ]] && args+=(--rollup          "$rollup")
 
 exec /usr/local/bin/gerritoscope "${args[@]}"

@@ -36,6 +36,9 @@ inputs:
   svg-multi-color:
     description: Colour each heatmap cell by the dominant Gerrit host/project family.
     default: "false"
+  rollup:
+    description: Rollup granularity for the heatmap (daily or weekly).
+    default: weekly
 
 runs:
   using: docker

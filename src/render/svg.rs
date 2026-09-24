@@ -226,16 +226,10 @@ impl Default for SvgOptions<'static> {
 // ---------------------------------------------------------------------------
 
 const CARD_W: u32 = 740;
-const CARD_H: u32 = 140;
-const GRID_LEFT: u32 = 16;
-const GRID_TOP: u32 = 52;
 const CELL: u32 = 13; // 10 px square + 3 px gap
 const SQUARE: u32 = 10;
 const TITLE_Y: u32 = 30;
 const MONTH_Y: u32 = 46;
-const PEAK_Y: u32 = 78;
-const DIVIDER_Y: u32 = 90;
-const STATS_Y: u32 = 106;
 
 // ---------------------------------------------------------------------------
 // Public render entry point
@@ -260,8 +254,7 @@ pub fn render(
     // Collect unique families for multi-colour mode.
     let families: Vec<String> = if opts.multi_color {
         let mut seen: Vec<String> = h
-            .weeks
-            .iter()
+            .all_buckets()
             .filter_map(|b| b.dominant_family().map(str::to_owned))
             .collect();
         seen.sort();
@@ -271,29 +264,43 @@ pub fn render(
         vec![]
     };
 
+    let (card_h, grid_left, grid_top, peak_y, divider_y, stats_y) = match h.rollup {
+        crate::stats::Rollup::Weekly => (140, 16, 52, 78, 90, 106),
+        crate::stats::Rollup::Daily => (220, 40, 54, 158, 172, 190),
+    };
+
     let css = css_block(theme, &families, opts.multi_color);
-    let months = month_label_elements(h);
-    let rects = rect_elements(h, &families, opts.multi_color);
+    let day_labels = if h.rollup == crate::stats::Rollup::Daily {
+        day_label_elements(grid_top)
+    } else {
+        String::new()
+    };
+    let months = month_label_elements(h, grid_left);
+    let rects = rect_elements(h, &families, opts.multi_color, grid_left, grid_top);
     let title_text = title_text(owner, hosts);
     let stats_line = stats_line(stats, h);
 
-    let peak_text = format!("peak: {}/wk", h.max_count);
+    let peak_unit = match h.rollup {
+        crate::stats::Rollup::Weekly => "wk",
+        crate::stats::Rollup::Daily => "day",
+    };
+    let peak_text = format!("peak: {}/{}", h.max_count, peak_unit);
 
     let svg = format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{CARD_H}" viewBox="0 0 {CARD_W} {CARD_H}" role="img" aria-label="gerritoscope heatmap for {owner}">
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{card_h}" viewBox="0 0 {CARD_W} {card_h}" role="img" aria-label="gerritoscope heatmap for {owner}">
 <title>gerritoscope · {owner}</title>
 <style>
 {css}
 </style>
-<rect width="{CARD_W}" height="{CARD_H}" rx="6" fill="var(--bg)" stroke="var(--border)" stroke-width="1"/>
+<rect width="{CARD_W}" height="{card_h}" rx="6" fill="var(--bg)" stroke="var(--border)" stroke-width="1"/>
 <text x="16" y="{TITLE_Y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="14" font-weight="bold" fill="var(--title)">{title_text}</text>
-{months}<g class="heatmap">
+{day_labels}{months}<g class="heatmap">
 {rects}</g>
-<text x="{GRID_LEFT}" y="{PEAK_Y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="var(--muted)">{peak_text}</text>
-<line x1="{GRID_LEFT}" y1="{DIVIDER_Y}" x2="{x2}" y2="{DIVIDER_Y}" stroke="var(--border)" stroke-width="1"/>
-<text x="{GRID_LEFT}" y="{STATS_Y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--text)">{stats_line}</text>
+<text x="16" y="{peak_y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="var(--muted)">{peak_text}</text>
+<line x1="16" y1="{divider_y}" x2="{x2}" y2="{divider_y}" stroke="var(--border)" stroke-width="1"/>
+<text x="16" y="{stats_y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--text)">{stats_line}</text>
 </svg>"#,
-        x2 = CARD_W - GRID_LEFT,
+        x2 = CARD_W - 16,
     );
 
     Ok(svg)
@@ -318,14 +325,19 @@ fn title_text(owner: &str, hosts: &[(String, String)]) -> String {
 
 fn stats_line(stats: &Stats, h: &Heatmap) -> String {
     use crate::render::fmt_count;
+    let streak_unit = match h.rollup {
+        crate::stats::Rollup::Weekly => "wk",
+        crate::stats::Rollup::Daily => "d",
+    };
     format!(
-        "{} merged · {}/90d · {} reviewed · <tspan fill=\"#3fb950\">+{}</tspan>/<tspan fill=\"#f85149\">−{}</tspan> · {}wk streak",
+        "{} merged · {}/90d · {} reviewed · <tspan fill=\"#3fb950\">+{}</tspan>/<tspan fill=\"#f85149\">−{}</tspan> · {}{} streak",
         fmt_count(stats.total_merged as i64),
         fmt_count(stats.recent_merged_90d as i64),
         fmt_count(stats.recent_reviews_90d as i64),
         fmt_count(stats.total_insertions),
         fmt_count(stats.total_deletions),
         h.current_streak(),
+        streak_unit,
     )
 }
 
@@ -415,13 +427,26 @@ fn palette_vars_inner(p: &Palette) -> Vec<String> {
     ]
 }
 
+fn day_label_elements(grid_top: u32) -> String {
+    let mut out = String::new();
+    let labels = [(0, "Mon"), (2, "Wed"), (4, "Fri")];
+    for (row, label) in labels {
+        let y = grid_top + row * CELL + 9;
+        out.push_str(&format!(
+            r#"<text x="16" y="{y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="var(--muted)">{label}</text>"#
+        ));
+        out.push('\n');
+    }
+    out
+}
+
 fn month_label_positions(h: &Heatmap) -> Vec<(u32, String)> {
     let mut positions = Vec::new();
     let mut last_month = 0u32;
     let mut last_col = 0usize;
 
-    for (i, b) in h.weeks.iter().enumerate() {
-        let m = b.week_start.month();
+    for (i, col) in h.columns.iter().enumerate() {
+        let m = col[0].date.month();
         if m != last_month {
             if i == 0 || i >= last_col + 4 {
                 positions.push((i as u32, super::month_abbr(m).to_owned()));
@@ -435,11 +460,11 @@ fn month_label_positions(h: &Heatmap) -> Vec<(u32, String)> {
 }
 
 /// Build the month-label `<text>` elements row.
-fn month_label_elements(h: &Heatmap) -> String {
+fn month_label_elements(h: &Heatmap, grid_left: u32) -> String {
     let positions = month_label_positions(h);
     let mut out = String::new();
     for (col, abbr) in positions {
-        let x = GRID_LEFT + col as u32 * CELL;
+        let x = grid_left + col * CELL;
         out.push_str(&format!(
             r#"<text x="{x}" y="{MONTH_Y}" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">{abbr}</text>"#
         ));
@@ -449,59 +474,72 @@ fn month_label_elements(h: &Heatmap) -> String {
 }
 
 /// Build the heatmap `<rect>` elements.
-fn rect_elements(h: &Heatmap, families: &[String], multi_color: bool) -> String {
+fn rect_elements(
+    h: &Heatmap,
+    families: &[String],
+    multi_color: bool,
+    grid_left: u32,
+    grid_top: u32,
+) -> String {
     let mut out = String::new();
 
-    for (i, bucket) in h.weeks.iter().enumerate() {
-        let x = GRID_LEFT + i as u32 * CELL;
-        let y = GRID_TOP;
-        let level = bucket.level();
+    for (col_idx, col) in h.columns.iter().enumerate() {
+        let x = grid_left + col_idx as u32 * CELL;
+        for (row_idx, bucket) in col.iter().enumerate() {
+            let y = grid_top + row_idx as u32 * CELL;
+            let level = bucket.level(h.rollup);
 
-        // Determine CSS class string.
-        let class = if multi_color && level > 0 {
-            let dom = bucket.dominant_family();
-            if let Some(fam) = dom {
-                if let Some(fi) = families.iter().position(|f| f == fam) {
-                    format!("week f{fi} l{level}")
+            // Determine CSS class string.
+            let class = if multi_color && level > 0 {
+                let dom = bucket.dominant_family();
+                if let Some(fam) = dom {
+                    if let Some(fi) = families.iter().position(|f| f == fam) {
+                        format!("week f{fi} l{level}")
+                    } else {
+                        format!("week l{level}")
+                    }
                 } else {
                     format!("week l{level}")
                 }
             } else {
                 format!("week l{level}")
-            }
-        } else {
-            format!("week l{level}")
-        };
+            };
 
-        // Tooltip text.
-        let date_str = bucket.week_start.format("%Y-%m-%d").to_string();
-        let merged = bucket.count - bucket.review_count;
-        let reviews = bucket.review_count;
-        let tooltip = if bucket.count == 0 {
-            format!("No activity – week of {date_str}")
-        } else {
-            let mut parts = Vec::new();
-            if merged > 0 {
-                parts.push(format!(
-                    "{} CL{}",
-                    merged,
-                    if merged == 1 { "" } else { "s" }
-                ));
-            }
-            if reviews > 0 {
-                parts.push(format!(
-                    "{} review{}",
-                    reviews,
-                    if reviews == 1 { "" } else { "s" }
-                ));
-            }
-            format!("{} – week of {date_str}", parts.join(", "))
-        };
+            // Tooltip text.
+            let date_str = bucket.date.format("%Y-%m-%d").to_string();
+            let merged = bucket.count - bucket.review_count;
+            let reviews = bucket.review_count;
+            let date_label = match h.rollup {
+                crate::stats::Rollup::Weekly => format!("week of {date_str}"),
+                crate::stats::Rollup::Daily => date_str,
+            };
 
-        out.push_str(&format!(
-            r#"  <rect x="{x}" y="{y}" width="{SQUARE}" height="{SQUARE}" rx="2" class="{class}"><title>{tooltip}</title></rect>"#
-        ));
-        out.push('\n');
+            let tooltip = if bucket.count == 0 {
+                format!("No activity – {date_label}")
+            } else {
+                let mut parts = Vec::new();
+                if merged > 0 {
+                    parts.push(format!(
+                        "{} CL{}",
+                        merged,
+                        if merged == 1 { "" } else { "s" }
+                    ));
+                }
+                if reviews > 0 {
+                    parts.push(format!(
+                        "{} review{}",
+                        reviews,
+                        if reviews == 1 { "" } else { "s" }
+                    ));
+                }
+                format!("{} – {date_label}", parts.join(", "))
+            };
+
+            out.push_str(&format!(
+                r#"  <rect x="{x}" y="{y}" width="{SQUARE}" height="{SQUARE}" rx="2" class="{class}"><title>{tooltip}</title></rect>"#
+            ));
+            out.push('\n');
+        }
     }
 
     out
@@ -515,14 +553,15 @@ fn rect_elements(h: &Heatmap, families: &[String], multi_color: bool) -> String 
 mod tests {
     use super::*;
     use crate::gerrit::{ChangeInfo, ChangeStatus};
-    use crate::stats;
+    use crate::stats::{self, Rollup};
     use chrono::{NaiveDate, TimeZone, Utc};
 
-    fn empty_stats() -> Stats {
+    fn empty_stats(rollup: Rollup) -> Stats {
         stats::compute(
             &[],
             &[],
             Utc.with_ymd_and_hms(2024, 6, 12, 12, 0, 0).unwrap(),
+            rollup,
         )
     }
 
@@ -543,7 +582,7 @@ mod tests {
 
     #[test]
     fn output_is_valid_svg_wrapper() {
-        let stats = empty_stats();
+        let stats = empty_stats(Rollup::Weekly);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         assert!(svg.contains("<svg"), "should contain opening <svg tag");
         assert!(svg.contains("</svg>"), "should contain closing </svg>");
@@ -551,7 +590,7 @@ mod tests {
 
     #[test]
     fn exactly_52_rect_elements() {
-        let stats = empty_stats();
+        let stats = empty_stats(Rollup::Weekly);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         // Count occurrences of `<rect` — the background rect + 52 week rects.
         // The background rect does not have class="week", so we count class="week"
@@ -560,18 +599,35 @@ mod tests {
             week_rects, 52,
             "expected 52 week rect elements, got {week_rects}"
         );
+        assert!(svg.contains("height=\"140\""));
+    }
+
+    #[test]
+    fn exactly_364_rect_elements_for_daily() {
+        let stats = empty_stats(Rollup::Daily);
+        let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
+        let week_rects = svg.matches("class=\"week").count();
+        assert_eq!(
+            week_rects, 364,
+            "expected 364 day rect elements, got {week_rects}"
+        );
+        assert!(svg.contains("height=\"220\""));
+        assert!(svg.contains(">Mon<"));
+        assert!(svg.contains(">Wed<"));
+        assert!(svg.contains(">Fri<"));
+        assert!(svg.contains("peak: 0/day"));
     }
 
     #[test]
     fn css_contains_bg_variable() {
-        let stats = empty_stats();
+        let stats = empty_stats(Rollup::Weekly);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         assert!(svg.contains("--bg:"), "should contain --bg CSS variable");
     }
 
     #[test]
     fn github_theme_has_dark_media_query() {
-        let stats = empty_stats();
+        let stats = empty_stats(Rollup::Weekly);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         assert!(
             svg.contains("prefers-color-scheme: dark"),
@@ -581,7 +637,7 @@ mod tests {
 
     #[test]
     fn fixed_theme_has_no_media_query() {
-        let stats = empty_stats();
+        let stats = empty_stats(Rollup::Weekly);
         let opts = SvgOptions {
             theme: "github-dark",
             multi_color: false,
@@ -616,7 +672,7 @@ mod tests {
             }
         }
         let changes = vec![cl("alpha", "2024-06-10"), cl("beta", "2024-06-03")];
-        let s = stats::compute(&changes, &[], now);
+        let s = stats::compute(&changes, &[], now, Rollup::Weekly);
         let opts = SvgOptions {
             theme: "github",
             multi_color: true,
@@ -659,7 +715,7 @@ mod tests {
     #[test]
     fn tooltip_in_rect_title() {
         let now = Utc.with_ymd_and_hms(2024, 6, 12, 12, 0, 0).unwrap();
-        let stats = stats::compute(&[], &[], now);
+        let stats = stats::compute(&[], &[], now, Rollup::Weekly);
         let svg = render("test@example.com", &hosts_one(), &stats, &opts_default()).unwrap();
         assert!(
             svg.contains("<title>"),

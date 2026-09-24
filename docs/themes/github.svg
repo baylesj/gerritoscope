@@ -35,72 +35,71 @@ rect.week { stroke: none; }
 </style>
 <rect width="740" height="140" rx="6" fill="var(--bg)" stroke="var(--border)" stroke-width="1"/>
 <text x="16" y="30" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="14" font-weight="bold" fill="var(--title)">gerritoscope · demo@example.com</text>
-<text x="16" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Mar</text>
-<text x="68" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Apr</text>
-<text x="120" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">May</text>
-<text x="172" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jun</text>
-<text x="237" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jul</text>
-<text x="289" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Aug</text>
-<text x="341" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Sep</text>
-<text x="406" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Oct</text>
-<text x="458" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Nov</text>
-<text x="510" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Dec</text>
-<text x="575" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jan</text>
-<text x="627" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Feb</text>
-<text x="679" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Mar</text>
+<text x="16" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Sep</text>
+<text x="81" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Nov</text>
+<text x="133" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Dec</text>
+<text x="198" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jan</text>
+<text x="250" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Feb</text>
+<text x="302" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Mar</text>
+<text x="367" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Apr</text>
+<text x="419" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">May</text>
+<text x="471" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jun</text>
+<text x="536" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Jul</text>
+<text x="588" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Aug</text>
+<text x="653" y="46" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11" fill="var(--muted)">Sep</text>
 <g class="heatmap">
-  <rect x="16" y="52" width="10" height="10" rx="2" class="week l1"><title>2 reviews – week of 2025-03-10</title></rect>
-  <rect x="29" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2025-03-17</title></rect>
-  <rect x="42" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2025-03-24</title></rect>
-  <rect x="55" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-03-31</title></rect>
-  <rect x="68" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-04-07</title></rect>
-  <rect x="81" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2025-04-14</title></rect>
-  <rect x="94" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-04-21</title></rect>
-  <rect x="107" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2025-04-28</title></rect>
-  <rect x="120" y="52" width="10" height="10" rx="2" class="week l1"><title>1 review – week of 2025-05-05</title></rect>
-  <rect x="133" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 6 reviews – week of 2025-05-12</title></rect>
-  <rect x="146" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 4 reviews – week of 2025-05-19</title></rect>
-  <rect x="159" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-05-26</title></rect>
-  <rect x="172" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-06-02</title></rect>
-  <rect x="185" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-06-09</title></rect>
-  <rect x="198" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 7 reviews – week of 2025-06-16</title></rect>
-  <rect x="211" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2025-06-23</title></rect>
-  <rect x="224" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2025-06-30</title></rect>
-  <rect x="237" y="52" width="10" height="10" rx="2" class="week l1"><title>2 reviews – week of 2025-07-07</title></rect>
-  <rect x="250" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2025-07-14</title></rect>
-  <rect x="263" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-07-21</title></rect>
-  <rect x="276" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-07-28</title></rect>
-  <rect x="289" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2025-08-04</title></rect>
-  <rect x="302" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 6 reviews – week of 2025-08-11</title></rect>
-  <rect x="315" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 3 reviews – week of 2025-08-18</title></rect>
-  <rect x="328" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-08-25</title></rect>
-  <rect x="341" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-09-01</title></rect>
-  <rect x="354" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2025-09-08</title></rect>
-  <rect x="367" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2025-09-15</title></rect>
-  <rect x="380" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2025-09-22</title></rect>
-  <rect x="393" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 5 reviews – week of 2025-09-29</title></rect>
-  <rect x="406" y="52" width="10" height="10" rx="2" class="week l1"><title>1 review – week of 2025-10-06</title></rect>
-  <rect x="419" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 8 reviews – week of 2025-10-13</title></rect>
-  <rect x="432" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2025-10-20</title></rect>
-  <rect x="445" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2025-10-27</title></rect>
-  <rect x="458" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-11-03</title></rect>
-  <rect x="471" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-11-10</title></rect>
-  <rect x="484" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2025-11-17</title></rect>
-  <rect x="497" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-11-24</title></rect>
-  <rect x="510" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2025-12-01</title></rect>
-  <rect x="523" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-12-08</title></rect>
-  <rect x="536" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 5 reviews – week of 2025-12-15</title></rect>
-  <rect x="549" y="52" width="10" height="10" rx="2" class="week l4"><title>3 CLs, 7 reviews – week of 2025-12-22</title></rect>
-  <rect x="562" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 6 reviews – week of 2025-12-29</title></rect>
-  <rect x="575" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2026-01-05</title></rect>
-  <rect x="588" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-01-12</title></rect>
-  <rect x="601" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-01-19</title></rect>
-  <rect x="614" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2026-01-26</title></rect>
-  <rect x="627" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-02-02</title></rect>
-  <rect x="640" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2026-02-09</title></rect>
-  <rect x="653" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2026-02-16</title></rect>
-  <rect x="666" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-02-23</title></rect>
-  <rect x="679" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-03-02</title></rect>
+  <rect x="16" y="52" width="10" height="10" rx="2" class="week l1"><title>2 reviews – week of 2025-09-29</title></rect>
+  <rect x="29" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2025-10-06</title></rect>
+  <rect x="42" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2025-10-13</title></rect>
+  <rect x="55" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-10-20</title></rect>
+  <rect x="68" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-10-27</title></rect>
+  <rect x="81" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2025-11-03</title></rect>
+  <rect x="94" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-11-10</title></rect>
+  <rect x="107" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2025-11-17</title></rect>
+  <rect x="120" y="52" width="10" height="10" rx="2" class="week l1"><title>1 review – week of 2025-11-24</title></rect>
+  <rect x="133" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 6 reviews – week of 2025-12-01</title></rect>
+  <rect x="146" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 4 reviews – week of 2025-12-08</title></rect>
+  <rect x="159" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2025-12-15</title></rect>
+  <rect x="172" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2025-12-22</title></rect>
+  <rect x="185" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2025-12-29</title></rect>
+  <rect x="198" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 7 reviews – week of 2026-01-05</title></rect>
+  <rect x="211" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-01-12</title></rect>
+  <rect x="224" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2026-01-19</title></rect>
+  <rect x="237" y="52" width="10" height="10" rx="2" class="week l1"><title>2 reviews – week of 2026-01-26</title></rect>
+  <rect x="250" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2026-02-02</title></rect>
+  <rect x="263" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2026-02-09</title></rect>
+  <rect x="276" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-02-16</title></rect>
+  <rect x="289" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2026-02-23</title></rect>
+  <rect x="302" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 6 reviews – week of 2026-03-02</title></rect>
+  <rect x="315" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 3 reviews – week of 2026-03-09</title></rect>
+  <rect x="328" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-03-16</title></rect>
+  <rect x="341" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-03-23</title></rect>
+  <rect x="354" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-03-30</title></rect>
+  <rect x="367" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2026-04-06</title></rect>
+  <rect x="380" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2026-04-13</title></rect>
+  <rect x="393" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 5 reviews – week of 2026-04-20</title></rect>
+  <rect x="406" y="52" width="10" height="10" rx="2" class="week l1"><title>1 review – week of 2026-04-27</title></rect>
+  <rect x="419" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 8 reviews – week of 2026-05-04</title></rect>
+  <rect x="432" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2026-05-11</title></rect>
+  <rect x="445" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-05-18</title></rect>
+  <rect x="458" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-05-25</title></rect>
+  <rect x="471" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-06-01</title></rect>
+  <rect x="484" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2026-06-08</title></rect>
+  <rect x="497" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2026-06-15</title></rect>
+  <rect x="510" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 4 reviews – week of 2026-06-22</title></rect>
+  <rect x="523" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-06-29</title></rect>
+  <rect x="536" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 5 reviews – week of 2026-07-06</title></rect>
+  <rect x="549" y="52" width="10" height="10" rx="2" class="week l4"><title>3 CLs, 7 reviews – week of 2026-07-13</title></rect>
+  <rect x="562" y="52" width="10" height="10" rx="2" class="week l4"><title>4 CLs, 6 reviews – week of 2026-07-20</title></rect>
+  <rect x="575" y="52" width="10" height="10" rx="2" class="week l2"><title>2 CLs, 3 reviews – week of 2026-07-27</title></rect>
+  <rect x="588" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-08-03</title></rect>
+  <rect x="601" y="52" width="10" height="10" rx="2" class="week l0"><title>No activity – week of 2026-08-10</title></rect>
+  <rect x="614" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 5 reviews – week of 2026-08-17</title></rect>
+  <rect x="627" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-08-24</title></rect>
+  <rect x="640" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 3 reviews – week of 2026-08-31</title></rect>
+  <rect x="653" y="52" width="10" height="10" rx="2" class="week l3"><title>3 CLs, 6 reviews – week of 2026-09-07</title></rect>
+  <rect x="666" y="52" width="10" height="10" rx="2" class="week l3"><title>2 CLs, 4 reviews – week of 2026-09-14</title></rect>
+  <rect x="679" y="52" width="10" height="10" rx="2" class="week l2"><title>1 CL, 2 reviews – week of 2026-09-21</title></rect>
 </g>
 <text x="16" y="78" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10" fill="var(--muted)">peak: 12/wk</text>
 <line x1="16" y1="90" x2="724" y2="90" stroke="var(--border)" stroke-width="1"/>

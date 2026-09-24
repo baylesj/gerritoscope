@@ -5,7 +5,7 @@ pub mod svg;
 
 use chrono::Datelike;
 
-use crate::stats::Heatmap;
+use crate::stats::{Heatmap, Rollup};
 
 // ---------------------------------------------------------------------------
 // Heatmap ASCII builders
@@ -21,12 +21,13 @@ const BLOCKS: [char; 5] = [' ', '░', '▒', '▓', '█'];
 ///
 /// Example: `"Feb   Apr May Jun  Jul Aug Sep  Oct Nov Dec  Jan Feb"`
 pub fn heatmap_header(h: &Heatmap) -> String {
-    let mut row = vec![' '; h.weeks.len()];
+    let num_cols = h.columns.len();
+    let mut row = vec![' '; num_cols];
     let mut last_month = 0u32;
     let mut last_pos = 0usize;
 
-    for (i, b) in h.weeks.iter().enumerate() {
-        let m = b.week_start.month();
+    for (i, col) in h.columns.iter().enumerate() {
+        let m = col[0].date.month();
         if m != last_month {
             if i == 0 || i >= last_pos + 4 {
                 for (j, ch) in month_abbr(m).chars().enumerate() {
@@ -43,11 +44,31 @@ pub fn heatmap_header(h: &Heatmap) -> String {
     row.into_iter().collect()
 }
 
-/// Raw heatmap body: one block glyph per week bucket, no brackets.
+/// Raw heatmap body: for weekly, one block glyph per week bucket; for daily,
+/// 7 rows (Mon..Sun) with day labels.
 ///
-/// Example: `"  ░▒░ ░░░░░░░ ░░ ░  ░▒ ░ ░  ░░░ ░░ ░▒█▓░█▓▓░▒▓▓  █▓▓"`
+/// Example (weekly): `"  ░▒░ ░░░░░░░ ░░ ░  ░▒ ░ ░  ░░░ ░░ ░▒█▓░█▓▓░▒▓▓  █▓▓"`
 pub fn heatmap_body(h: &Heatmap) -> String {
-    h.weeks.iter().map(|b| BLOCKS[b.level() as usize]).collect()
+    match h.rollup {
+        Rollup::Weekly => h
+            .columns
+            .iter()
+            .map(|col| BLOCKS[col[0].level(h.rollup) as usize])
+            .collect(),
+        Rollup::Daily => {
+            let day_labels = ["Mon ", "    ", "Wed ", "    ", "Fri ", "    ", "    "];
+            let mut lines = Vec::new();
+            for r in 0..7 {
+                let row_chars: String = h
+                    .columns
+                    .iter()
+                    .map(|col| BLOCKS[col[r].level(h.rollup) as usize])
+                    .collect();
+                lines.push(format!("{}[{}]", day_labels[r], row_chars));
+            }
+            lines.join("\n")
+        }
+    }
 }
 
 /// Full markdown code-block for the heatmap, ready to embed in a template.
@@ -55,21 +76,31 @@ pub fn heatmap_body(h: &Heatmap) -> String {
 /// Building the entire block in Rust avoids the Jinja whitespace trap where
 /// putting `{{ expr }}` on the same line as the opening fence makes it parse
 /// as a language-info string in GitHub's renderer.
-///
-/// ```text
-/// ```
-/// Feb   Apr May Jun  ...
-/// [  ░▒░ ░░░░░░░ ...]
-/// peak: 12 CLs/wk
-/// ```
-/// ```
 pub fn heatmap_code_block(h: &Heatmap) -> String {
-    format!(
-        "```\n{}\n[{}]\npeak: {}/wk\n```",
-        heatmap_header(h),
-        heatmap_body(h),
-        h.max_count,
-    )
+    let peak_unit = match h.rollup {
+        Rollup::Weekly => "wk",
+        Rollup::Daily => "day",
+    };
+    match h.rollup {
+        Rollup::Weekly => {
+            format!(
+                "```\n{}\n[{}]\npeak: {}/{}\n```",
+                heatmap_header(h),
+                heatmap_body(h),
+                h.max_count,
+                peak_unit,
+            )
+        }
+        Rollup::Daily => {
+            format!(
+                "```\n    {}\n{}\npeak: {}/{}\n```",
+                heatmap_header(h),
+                heatmap_body(h),
+                h.max_count,
+                peak_unit,
+            )
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -128,40 +159,72 @@ pub fn month_abbr(m: u32) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stats::{Heatmap, WeekBucket};
+    use crate::stats::{Bucket, Heatmap, Rollup};
     use chrono::NaiveDate;
     use std::collections::HashMap;
 
-    fn empty_heatmap(weeks: usize) -> Heatmap {
-        Heatmap {
-            weeks: (0..weeks)
-                .map(|i| WeekBucket {
-                    week_start: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
-                        + chrono::Duration::weeks(i as i64),
-                    count: 0,
-                    review_count: 0,
-                    family_counts: HashMap::new(),
+    fn empty_heatmap(weeks: usize, rollup: Rollup) -> Heatmap {
+        let columns = match rollup {
+            Rollup::Weekly => (0..weeks)
+                .map(|i| {
+                    vec![Bucket {
+                        date: NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+                            + chrono::Duration::weeks(i as i64),
+                        count: 0,
+                        review_count: 0,
+                        family_counts: HashMap::new(),
+                    }]
                 })
                 .collect(),
+            Rollup::Daily => (0..weeks)
+                .map(|i| {
+                    let week_mon = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()
+                        + chrono::Duration::weeks(i as i64);
+                    (0..7)
+                        .map(|d| Bucket {
+                            date: week_mon + chrono::Duration::days(d as i64),
+                            count: 0,
+                            review_count: 0,
+                            family_counts: HashMap::new(),
+                        })
+                        .collect()
+                })
+                .collect(),
+        };
+        Heatmap {
+            rollup,
+            today: NaiveDate::from_ymd_opt(2024, 6, 12).unwrap(),
+            columns,
             max_count: 0,
         }
     }
 
     #[test]
     fn heatmap_body_length_matches_weeks() {
-        let h = empty_heatmap(52);
+        let h = empty_heatmap(52, Rollup::Weekly);
         assert_eq!(heatmap_body(&h).chars().count(), 52);
     }
 
     #[test]
     fn heatmap_body_all_spaces_when_empty() {
-        let h = empty_heatmap(52);
+        let h = empty_heatmap(52, Rollup::Weekly);
         assert!(heatmap_body(&h).chars().all(|c| c == ' '));
     }
 
     #[test]
+    fn heatmap_body_daily_matches_7_rows() {
+        let h = empty_heatmap(52, Rollup::Daily);
+        let body = heatmap_body(&h);
+        let lines: Vec<&str> = body.lines().collect();
+        assert_eq!(lines.len(), 7);
+        assert!(lines[0].starts_with("Mon ["));
+        assert!(lines[2].starts_with("Wed ["));
+        assert!(lines[4].starts_with("Fri ["));
+    }
+
+    #[test]
     fn heatmap_header_length_matches_weeks() {
-        let h = empty_heatmap(52);
+        let h = empty_heatmap(52, Rollup::Weekly);
         assert_eq!(heatmap_header(&h).len(), 52);
     }
 
@@ -187,7 +250,7 @@ mod tests {
 
     #[test]
     fn heatmap_code_block_contains_fence() {
-        let h = empty_heatmap(4);
+        let h = empty_heatmap(4, Rollup::Weekly);
         let block = heatmap_code_block(&h);
         assert!(block.starts_with("```\n"), "should open with fence+newline");
         assert!(block.ends_with("\n```"), "should close with newline+fence");
