@@ -61,6 +61,10 @@ struct Args {
     #[arg(long)]
     svg_multi_color: bool,
 
+    /// Rollup granularity for the heatmap (daily or weekly). Defaults to "weekly".
+    #[arg(long, value_enum, default_value = "weekly")]
+    rollup: stats::Rollup,
+
     /// Skip fetching code review activity (faster, but omits review stats).
     #[arg(long)]
     skip_reviews: bool,
@@ -104,7 +108,7 @@ async fn main() -> Result<()> {
     };
     eprintln!("  {} review events fetched total", reviews.len());
 
-    let stats = stats::compute(&changes, &reviews, chrono::Utc::now());
+    let stats = stats::compute(&changes, &reviews, chrono::Utc::now(), args.rollup);
     print_report(&args.owner, &resolved, &stats);
 
     if let Some(ref path) = args.output_md {
@@ -266,10 +270,16 @@ fn print_report(owner: &str, hosts: &[(String, String)], s: &Stats) {
         fmt_count(s.total_reviews as i64),
         fmt_count(s.recent_reviews_90d as i64),
     );
+    let streak_unit = match s.heatmap.rollup {
+        stats::Rollup::Weekly => "wks",
+        stats::Rollup::Daily => "days",
+    };
     println!(
-        "  Streak             current {} wks ·    longest {} wks",
+        "  Streak             current {} {} ·    longest {} {}",
         s.heatmap.current_streak(),
+        streak_unit,
         s.heatmap.longest_streak(),
+        streak_unit,
     );
     println!(
         "  Lines changed      {GREEN}+{}{RESET} / {RED}-{}{RESET}",
@@ -296,9 +306,23 @@ fn print_report(owner: &str, hosts: &[(String, String)], s: &Stats) {
 
 fn print_heatmap(h: &Heatmap) {
     println!();
-    println!("  {}", heatmap_header(h));
-    println!("  [{}]", heatmap_body(h));
-    println!("  peak: {} contributions/week", h.max_count);
+    let peak_unit = match h.rollup {
+        stats::Rollup::Weekly => "contributions/week",
+        stats::Rollup::Daily => "contributions/day",
+    };
+    match h.rollup {
+        stats::Rollup::Weekly => {
+            println!("  {}", heatmap_header(h));
+            println!("  [{}]", heatmap_body(h));
+        }
+        stats::Rollup::Daily => {
+            println!("    {}", heatmap_header(h));
+            for line in heatmap_body(h).lines() {
+                println!("  {}", line);
+            }
+        }
+    }
+    println!("  peak: {} {}", h.max_count, peak_unit);
 }
 
 // ---------------------------------------------------------------------------

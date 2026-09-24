@@ -85,6 +85,7 @@ jobs:
 | `output-md` | no | — | Output path for a markdown report |
 | `svg-theme` | no | `github` | Color theme (see Themes below) |
 | `svg-multi-color` | no | `false` | Color cells by Gerrit host/project family |
+| `rollup` | no | `weekly` | Rollup granularity: `weekly` or `daily` |
 
 ### Using credentials for private instances
 
@@ -153,8 +154,11 @@ cargo install --git https://github.com/baylesj/gerritoscope
 Example invocations:
 
 ```bash
-# Fetch from Chromium and write an SVG
+# Fetch from Chromium and write an SVG (weekly rollup by default)
 gerritoscope --owner you@example.com --output-svg heatmap.svg
+
+# Daily rollup (GitHub-style 7-day grid)
+gerritoscope --owner you@example.com --rollup daily --output-svg heatmap.svg
 
 # Multiple hosts, dark theme
 gerritoscope --owner you@example.com --hosts chromium,go --svg-theme github-dark --output-svg heatmap.svg

@@ -31,8 +31,8 @@ const TEMPLATE: &str = r#"## gerritoscope · {{ owner }}
 | Reviews (90d) | **{{ recent_reviews_90d }}** |
 | Lines added | **+{{ total_ins }}** |
 | Lines removed | **-{{ total_del }}** |
-| Current streak | **{{ current_streak }} wk** |
-| Longest streak | **{{ longest_streak }} wk** |
+| Current streak | **{{ current_streak }} {{ streak_unit }}** |
+| Longest streak | **{{ longest_streak }} {{ streak_unit }}** |
 
 **Top projects**
 
@@ -105,6 +105,11 @@ pub fn render(owner: &str, hosts: &[(String, String)], stats: &Stats) -> Result<
             .join(" · ")
     };
 
+    let streak_unit = match stats.heatmap.rollup {
+        crate::stats::Rollup::Weekly => "wk",
+        crate::stats::Rollup::Daily => "d",
+    };
+
     let ctx = minijinja::context! {
         owner               => owner,
         heatmap_block       => heatmap_code_block(&stats.heatmap),
@@ -116,6 +121,7 @@ pub fn render(owner: &str, hosts: &[(String, String)], stats: &Stats) -> Result<
         recent_reviews_90d  => fmt_count(stats.recent_reviews_90d as i64),
         current_streak      => stats.heatmap.current_streak(),
         longest_streak      => stats.heatmap.longest_streak(),
+        streak_unit         => streak_unit,
         top_projects        => projects,
         generated_at        => generated_at,
         host_links          => host_links,
@@ -132,6 +138,7 @@ pub fn render(owner: &str, hosts: &[(String, String)], stats: &Stats) -> Result<
 mod tests {
     use super::*;
     use crate::gerrit::{ChangeInfo, ChangeStatus};
+    use crate::stats::Rollup;
     use chrono::{NaiveDate, Utc};
 
     fn ts(s: &str) -> chrono::DateTime<Utc> {
@@ -161,7 +168,7 @@ mod tests {
             merged_cl("openscreen", "2024-06-05", 50, 10),
             merged_cl("openscreen/quic", "2024-06-06", 30, 5),
         ];
-        crate::stats::compute(&changes, &[], ts("2024-06-12"))
+        crate::stats::compute(&changes, &[], ts("2024-06-12"), Rollup::Weekly)
     }
 
     fn single_host(url: &str) -> Vec<(String, String)> {
@@ -244,6 +251,21 @@ mod tests {
         assert!(md.contains("Last 90 days"));
         assert!(md.contains("Lines added"));
         assert!(md.contains("Lines removed"));
+        assert!(md.contains("0 wk"));
+    }
+
+    #[test]
+    fn render_daily_contains_d_streak_unit() {
+        let changes = vec![merged_cl("chromium/src", "2024-06-12", 10, 2)];
+        let stats = crate::stats::compute(&changes, &[], ts("2024-06-12"), Rollup::Daily);
+        let md = render(
+            "alice@example.com",
+            &single_host("https://example-review.example.com"),
+            &stats,
+        )
+        .unwrap();
+        assert!(md.contains("1 d"));
+        assert!(md.contains("peak: 1/day"));
     }
 
     #[test]
@@ -266,7 +288,7 @@ mod tests {
     #[test]
     fn render_formatted_numbers_use_commas() {
         let changes = vec![merged_cl("repo", "2024-06-10", 12345, 678)];
-        let stats = crate::stats::compute(&changes, &[], ts("2024-06-12"));
+        let stats = crate::stats::compute(&changes, &[], ts("2024-06-12"), Rollup::Weekly);
         let md = render("u@example.com", &single_host("https://example.com"), &stats).unwrap();
         assert!(md.contains("12,345"), "insertions not comma-formatted");
     }

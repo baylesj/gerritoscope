@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use chrono::{Datelike, Duration, Utc};
 
 use gerritoscope::render::svg::{render, SvgOptions};
-use gerritoscope::stats::{Heatmap, ProjectStat, Stats, WeekBucket, HEATMAP_WEEKS};
+use gerritoscope::stats::{Bucket, Heatmap, ProjectStat, Rollup, Stats, HEATMAP_WEEKS};
 
 fn main() -> anyhow::Result<()> {
     std::fs::create_dir_all("docs/themes")?;
@@ -77,7 +77,7 @@ fn sample_stats() -> Stats {
         (1, 3), (3, 6), (2, 4), (1, 2),
     ];
 
-    let buckets: Vec<WeekBucket> = activity
+    let buckets: Vec<Vec<Bucket>> = activity
         .iter()
         .enumerate()
         .map(|(i, &(cls, reviews))| {
@@ -86,20 +86,27 @@ fn sample_stats() -> Stats {
             if count > 0 {
                 family_counts.insert("chromium".to_owned(), count);
             }
-            WeekBucket {
-                week_start: heatmap_start + Duration::weeks(i as i64),
+            vec![Bucket {
+                date: heatmap_start + Duration::weeks(i as i64),
                 count,
                 review_count: reviews,
                 family_counts,
-            }
+            }]
         })
         .collect();
 
-    let max_count = buckets.iter().map(|b| b.count).max().unwrap_or(0);
+    let max_count = buckets
+        .iter()
+        .flat_map(|col| col.iter())
+        .map(|b| b.count)
+        .max()
+        .unwrap_or(0);
 
     Stats {
         heatmap: Heatmap {
-            weeks: buckets,
+            rollup: Rollup::Weekly,
+            today,
+            columns: buckets,
             max_count,
         },
         total_merged: 142,
